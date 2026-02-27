@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Usman CNC Suite</title>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Segoe UI, sans-serif;
+}
+
+body{
+background:url("background.jpg") no-repeat center center/cover;
+height:100vh;
+overflow:hidden;
+color:white;
+}
+
+.overlay{
+position:absolute;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.65);
+}
+
+.intro{
+position:absolute;
+width:100%;
+top:50%;
+transform:translateY(-50%);
+text-align:center;
+animation:fadeIn 2s forwards;
+}
+
+.signature{
+font-size:34px;
+color:#d4af37;
+animation:slideDown 2s forwards;
+}
+
+.logo{
+font-size:80px;
+font-weight:bold;
+letter-spacing:6px;
+margin-top:10px;
+color:white;
+animation:zoomIn 2s forwards;
+}
+
+.tagline{
+margin-top:10px;
+font-size:18px;
+color:#ccc;
+animation:fadeIn 3s forwards;
+}
+
+.enter-btn{
+margin-top:30px;
+padding:12px 40px;
+border:none;
+border-radius:30px;
+background:#00f7ff;
+color:black;
+cursor:pointer;
+font-weight:bold;
+transition:0.3s;
+}
+
+.enter-btn:hover{
+transform:scale(1.1);
+box-shadow:0 0 20px #00f7ff;
+}
+
+@keyframes slideDown{
+from{opacity:0; transform:translateY(-40px);}
+to{opacity:1; transform:translateY(0);}
+}
+
+@keyframes zoomIn{
+from{opacity:0; transform:scale(0.5);}
+to{opacity:1; transform:scale(1);}
+}
+
+@keyframes fadeIn{
+from{opacity:0;}
+to{opacity:1;}
+}
+
+.app{
+display:none;
+position:absolute;
+width:100%;
+height:100%;
+overflow:auto;
+background:rgba(0,0,0,0.85);
+padding:20px;
+}
+
+.card{
+background:rgba(255,255,255,0.05);
+padding:20px;
+border-radius:15px;
+margin-bottom:20px;
+backdrop-filter:blur(8px);
+}
+
+.card h2{
+color:#d4af37;
+margin-bottom:10px;
+}
+
+input, select{
+width:100%;
+padding:10px;
+margin:8px 0;
+border-radius:10px;
+border:none;
+}
+
+button{
+padding:10px 20px;
+background:#00f7ff;
+border:none;
+border-radius:20px;
+cursor:pointer;
+font-weight:bold;
+margin-top:10px;
+}
+
+button:hover{
+box-shadow:0 0 15px #00f7ff;
+}
+
+.output{
+background:black;
+padding:15px;
+margin-top:10px;
+white-space:pre-wrap;
+font-family:monospace;
+font-size:14px;
+color:#00f7ff;
+border-radius:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="overlay"></div>
+
+<div class="intro" id="intro">
+<div class="signature">Muhammad Usman Iqbal</div>
+<div class="logo">CNC</div>
+<div class="tagline">Programming Specialist</div>
+<button class="enter-btn" onclick="enterApp()">Enter App</button>
+</div>
+
+<div class="app" id="app">
+
+<div class="card">
+<h2>Material Selection</h2>
+<select id="material">
+<option value="steel">Mild Steel</option>
+<option value="stainless">Stainless Steel</option>
+<option value="aluminum">Aluminum</option>
+<option value="brass">Brass</option>
+</select>
+
+<input type="number" id="diameter" placeholder="Tool Diameter (mm)">
+<input type="number" id="flutes" placeholder="Number of Flutes">
+<input type="number" id="chipload" placeholder="Chip Load (mm)">
+<input type="number" id="cutDepth" placeholder="Total Cut Depth (mm)">
+<input type="number" id="safeHeight" placeholder="Safe Height (mm)">
+<input type="number" id="travelX" placeholder="X Travel Length (mm)">
+<input type="number" id="passes" placeholder="Number of Passes">
+</div>
+
+<div class="card">
+<h2>Operation</h2>
+<select id="operation">
+<option value="facing">Facing</option>
+<option value="drilling">Drilling</option>
+</select>
+<button onclick="generate()">Generate Program</button>
+<div class="output" id="programOutput"></div>
+</div>
+
+</div>
+
+<script>
+
+function enterApp(){
+document.getElementById("intro").style.display="none";
+document.getElementById("app").style.display="block";
+}
+
+function getSurfaceSpeed(material){
+if(material==="steel") return 30;
+if(material==="stainless") return 20;
+if(material==="aluminum") return 80;
+if(material==="brass") return 60;
+}
+
+function generate(){
+let cutDepth = parseFloat(document.getElementById("cutDepth").value);
+let safeHeight = parseFloat(document.getElementById("safeHeight").value);
+let travelX = parseFloat(document.getElementById("travelX").value);
+let passes = parseInt(document.getElementById("passes").value);
+let material=document.getElementById("material").value;
+let diameter=document.getElementById("diameter").value;
+let flutes=document.getElementById("flutes").value;
+let chipload=document.getElementById("chipload").value;
+let operation=document.getElementById("operation").value;
+
+let V=getSurfaceSpeed(material);
+let rpm=(1000*V)/(3.14*diameter);
+let feed=rpm*flutes*chipload;
+
+rpm=Math.round(rpm);
+feed=Math.round(feed);
+
+let program="%\n";
+
+let n = 10;
+function line(code){
+    program += "N" + n + " " + code + "\n";
+    n += 10;
+}
+
+line("O1001 (USMAN CNC SUITE)");
+line("G21");
+line("G17 G40 G49 G80 G90");
+line("T1 M06");
+line("G54");
+line("S"+rpm+" M03");
+line("G00 X0 Y0");
+line("G43 H01 Z100.");
+line("M08");
+line("F"+feed);
+
+if(operation==="facing"){
+    if(operation==="facing"){
+    line("(FACING OPERATION)");
+    line("G00 Z"+safeHeight);
+
+    let depthPerPass = cutDepth / passes;
+
+    for(let i=1; i<=passes; i++){
+        let currentDepth = (depthPerPass * i).toFixed(2);
+        line("(PASS "+i+")");
+        line("G01 Z-"+currentDepth);
+        line("G01 X"+travelX);
+        line("G00 Z"+safeHeight);
+    }
+}
+}
+
+if(operation==="drilling"){
+    line("(DRILLING OPERATION)");
+    line("G81 Z-20. R5. F"+feed);
+    line("G80");
+}
+
+line("M09");
+line("M05");
+line("M30");
+
+program += "%";
+document.getElementById("programOutput").innerText=program;
+}
+
+</script>
+
+</body>
+</html>
